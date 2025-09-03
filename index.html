@@ -1,0 +1,332 @@
+<!-- Smart Scoop - Single-file React app (CDN) -->
+<!--
+  How to use: create a new GitHub repo and add this file as `index.html` in the root.
+  Enable GitHub Pages (or deploy to Vercel/Netlify) to host. This uses React via CDN + Babel for JSX (good for prototyping).
+  Later you can convert to a Vite/CRA project for production.
+-->
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Smart Scoop — TopperNotes AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg: #fbfbfd;
+      --card:#ffffff;
+      --muted:#7b7f93;
+      --accent:#7c6ef7;
+      --soft:#f3f1ff;
+      --radius:14px;
+      font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:linear-gradient(180deg,#fbfcff,#f7f8ff);color:#111;}
+    .container{max-width:1100px;margin:28px auto;padding:20px}
+    header{display:flex;gap:16px;align-items:center;justify-content:space-between}
+    .brand{display:flex;gap:12px;align-items:center}
+    .logo{width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#b693ff);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:20px;box-shadow:0 6px 18px rgba(124,110,247,0.18)}
+    h1{margin:0;font-size:20px}
+    p.lead{margin:0;color:var(--muted);font-size:13px}
+
+    .top-actions{display:flex;gap:10px;align-items:center}
+    .search{display:flex;background:var(--card);padding:8px;border-radius:12px;box-shadow:0 6px 18px rgba(99,102,241,0.06);width:320px}
+    .search input{border:0;outline:none;font-size:14px;background:transparent}
+    .btn{background:var(--accent);color:white;padding:10px 14px;border-radius:10px;border:0;font-weight:600;cursor:pointer}
+    .btn.ghost{background:transparent;color:var(--accent);box-shadow:none;border:2px solid rgba(124,110,247,0.12)}
+
+    .grid{display:grid;grid-template-columns:320px 1fr;gap:20px;margin-top:22px}
+    aside{background:var(--card);padding:16px;border-radius:var(--radius);box-shadow:0 8px 30px rgba(15,15,15,0.03)}
+    .category{margin-bottom:12px}
+    .category h3{margin:0 0 8px 0;font-size:14px}
+    .subject{padding:8px;border-radius:10px;margin-bottom:8px;cursor:pointer}
+    .subject:hover{background:var(--soft)}
+
+    main{min-height:60vh}
+    .notes-header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;margin-top:16px}
+    .card{background:var(--card);padding:14px;border-radius:14px;box-shadow:0 8px 28px rgba(17,17,17,0.04)}
+    .small{font-size:13px;color:var(--muted)}
+
+    .note-body{margin-top:10px;color:#202124;line-height:1.5}
+    pre{background:#0f1724;color:#e6eef8;padding:10px;border-radius:10px;overflow:auto}
+
+    .ad-placeholder{border:2px dashed rgba(124,110,247,0.18);padding:12px;border-radius:10px;text-align:center;color:var(--muted);font-size:13px}
+
+    footer{margin-top:26px;text-align:center;color:var(--muted);font-size:13px}
+
+    /* Responsive */
+    @media (max-width:880px){
+      .grid{grid-template-columns:1fr;}
+      .search{width:100%}
+      .top-actions{flex-direction:column;align-items:flex-end}
+    }
+
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- React + ReactDOM (UMD) and Babel for JSX (quick prototype). For production, use a build step. -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+
+  <script type="text/babel">
+    const {useState, useMemo, useEffect} = React;
+
+    // SAMPLE DATA: easy to expand later (load from JSON or CMS)
+    const SAMPLE = {
+      ICSE: {
+        grade9: {
+          Math: {
+            title: 'Math — Algebra basics',
+            summary: 'Variables, equations, solving linear equations. Use simple steps and check answers by substitution.',
+            tips: ['Always isolate the variable', 'Check by substituting back'],
+            formulas: ['ax + b = 0 → x = -b/a']
+          },
+          Science: {
+            title: 'Science —Atoms & Molecules',
+            summary: 'Matter is made of atoms. Elements combine to form compounds. Know the periodic table basics.',
+            tips: ['Learn by making flashcards', 'Group similar elements together'],
+            formulas: ['Moles = mass / molar mass']
+          }
+        },
+        grade10: {
+          Math: {
+            title: 'Math — Quadratics',
+            summary: 'Quadratic equation ax^2 + bx + c = 0. Use factorization or quadratic formula.',
+            tips: ['Try factorization first', 'Use discriminant b^2-4ac to check roots'],
+            formulas: ['x = (-b ± √(b^2-4ac)) / (2a)']
+          }
+        }
+      },
+      CBSE: {
+        grade9: {
+          English: {
+            title: 'English — Essay tips',
+            summary: 'Intro, body (3 para), conclusion. Keep language simple, include examples.',
+            tips: ['Start with a hook', 'Use short paragraphs'],
+            formulas: []
+          }
+        }
+      }
+    };
+
+    const RANDOM_TIPS = [
+      'Study for 25 minutes, rest 5 minutes (Pomodoro).',
+      'Teach someone a concept to master it.',
+      'Make small visual notes — diagrams stick better.',
+      'Solve one past paper question every day.',
+      'Highlight only key points — avoid over-highlighting.'
+    ];
+
+    function App(){
+      const [data] = useState(SAMPLE);
+      const [selected, setSelected] = useState({cat:'ICSE', grade:'grade10', subject:'Math'});
+      const [query, setQuery] = useState('');
+      const [tip, setTip] = useState(RANDOM_TIPS[0]);
+
+      useEffect(()=>{
+        // default select first available subject if missing
+        const cat = selected.cat;
+        if(cat && data[cat]){
+          const grades = Object.keys(data[cat]);
+          if(!grades.includes(selected.grade)){
+            const firstGrade = grades[0];
+            const subjects = Object.keys(data[cat][firstGrade]||{});
+            setSelected(s=>({...s, grade:firstGrade, subject:subjects[0]||''}));
+          }
+        }
+      },[]);
+
+      const results = useMemo(()=>{
+        if(!query) return [];
+        const q = query.toLowerCase();
+        const out = [];
+        for(const cat of Object.keys(data)){
+          for(const grade of Object.keys(data[cat])){
+            for(const subject of Object.keys(data[cat][grade])){
+              const note = data[cat][grade][subject];
+              if((subject+note.title+note.summary+(note.tips||[]).join(' ')).toLowerCase().includes(q)){
+                out.push({cat,grade,subject,note});
+              }
+            }
+          }
+        }
+        return out;
+      },[query, data]);
+
+      function handleSelect(cat, grade, subject){
+        setSelected({cat,grade,subject});
+        setQuery('');
+      }
+
+      function currentNote(){
+        try{
+          return data[selected.cat][selected.grade][selected.subject] || null;
+        }catch(e){return null}
+      }
+
+      function genTip(){
+        const pick = RANDOM_TIPS[Math.floor(Math.random()*RANDOM_TIPS.length)];
+        setTip(pick);
+      }
+
+      const note = currentNote();
+
+      return (
+        <div className="container">
+          <header>
+            <div className="brand">
+              <div className="logo">SS</div>
+              <div>
+                <h1>Smart Scoop — TopperNotes AI</h1>
+                <p className="lead">Your AI-powered easy notes for ICSE & CBSE toppers</p>
+              </div>
+            </div>
+
+            <div className="top-actions">
+              <div className="search">
+                <input placeholder="Search topics, e.g. quadratics" value={query} onChange={e=>setQuery(e.target.value)} />
+                <button className="btn ghost" onClick={()=>setQuery('')}>Clear</button>
+              </div>
+              <button className="btn" onClick={genTip}>Random Study Tip</button>
+            </div>
+          </header>
+
+          <div style={{marginTop:12}} className="grid">
+            <aside>
+              <div style={{display:'flex',gap:8,alignItems:'center',marginBottom:14}}>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:13,color:'var(--muted)'}}>Categories</div>
+                </div>
+              </div>
+
+              {Object.keys(data).map(cat=> (
+                <div key={cat} className="category">
+                  <h3>{cat} (9th–10th)</h3>
+                  {Object.keys(data[cat]).map(grade=> (
+                    <div key={grade} style={{marginLeft:6,marginBottom:6}}>
+                      <div style={{fontSize:12,color:'var(--muted)',marginBottom:6}}>{grade.replace('grade','Grade ')}</div>
+                      {Object.keys(data[cat][grade]).map(subject=> (
+                        <div key={subject} className="subject" onClick={()=>handleSelect(cat,grade,subject)}>
+                          {subject}
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              ))}
+
+              <div style={{marginTop:12}} className="ad-placeholder">Ad placeholder (e.g. Google Ads)</div>
+
+              <div style={{marginTop:12}} className="ad-placeholder">Big banner ad placeholder</div>
+            </aside>
+
+            <main>
+              <div className="notes-header">
+                <div>
+                  <div style={{fontSize:13,color:'var(--muted)'}}>Selected</div>
+                  <h2 style={{margin:'6px 0 0'}}>{selected.subject || 'Pick a subject'}</h2>
+                  <div className="small">{selected.cat} • {selected.grade.replace('grade','Grade ')}</div>
+                </div>
+
+                <div style={{textAlign:'right'}}>
+                  <div className="small">Study tip</div>
+                  <div style={{marginTop:6,background:'var(--soft)',padding:'8px 12px',borderRadius:10}}>{tip}</div>
+                </div>
+              </div>
+
+              {/* Search results */}
+              {query ? (
+                <div style={{marginTop:16}}>
+                  <div className="small">Search results for "{query}"</div>
+                  <div className="cards" style={{marginTop:10}}>
+                    {results.length ? results.map((r,idx)=> (
+                      <div key={idx} className="card" onClick={()=>handleSelect(r.cat,r.grade,r.subject)} style={{cursor:'pointer'}}>
+                        <div style={{fontWeight:700}}>{r.subject}</div>
+                        <div className="small">{r.cat} • {r.grade.replace('grade','Grade ')}</div>
+                        <div style={{marginTop:8,color:'var(--muted)'}}>{r.note.summary}</div>
+                      </div>
+                    )) : (
+                      <div className="card">No results found — try simpler words.</div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* Main content - note details */}
+                  <div style={{marginTop:16}}>
+                    {note ? (
+                      <div>
+                        <div className="card">
+                          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12}}>
+                            <div>
+                              <div style={{fontWeight:700,fontSize:16}}>{note.title}</div>
+                              <div className="small" style={{marginTop:6}}>{note.summary}</div>
+                            </div>
+                            <div style={{minWidth:120,textAlign:'right'}} className="small">Tips • Formulas</div>
+                          </div>
+
+                          <div className="note-body">
+                            <h4>Example</h4>
+                            <p>Work with the concept slowly. Example problems help you remember the steps.</p>
+
+                            {note.tips && note.tips.length>0 && (
+                              <>
+                                <h4 style={{marginTop:10}}>Tips</h4>
+                                <ul>
+                                  {note.tips.map((t,i)=>(<li key={i}>{t}</li>))}
+                                </ul>
+                              </>
+                            )}
+
+                            {note.formulas && note.formulas.length>0 && (
+                              <>
+                                <h4 style={{marginTop:10}}>Important formulas</h4>
+                                <pre>{note.formulas.join('\n')}</pre>
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+                        <div style={{marginTop:12}} className="ad-placeholder">Inline ad placeholder</div>
+
+                        <div style={{marginTop:12}}>
+                          <h3 style={{marginBottom:8}}>More notes</h3>
+                          <div className="cards">
+                            {/* show other subjects in same grade */}
+                            {Object.keys(data[selected.cat][selected.grade]||{}).map((s,idx)=> (
+                              <div key={s} className="card" style={{border: s===selected.subject ? '2px solid rgba(124,110,247,0.12)':''}} onClick={()=>handleSelect(selected.cat,selected.grade,s)}>
+                                <div style={{fontWeight:700}}>{s}</div>
+                                <div className="small">{data[selected.cat][selected.grade][s].summary}</div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="card">Pick a subject from the left to view notes. You can expand the sample data in the code later.</div>
+                    )}
+                  </div>
+                </>
+              )}
+
+              <footer>
+                <div style={{marginTop:20}}>Made with ❤️ Smart Scoop • Easy notes powered by simple structure — expand with JSON or a headless CMS later.</div>
+              </footer>
+            </main>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
